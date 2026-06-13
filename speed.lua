@@ -1,14 +1,16 @@
-local player = game.Players.LocalPlayer
-local userInputService = game:GetService("UserInputService")
-local runService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
 
+local player = Players.LocalPlayer
 local speed = 16
 local defaultSpeed = 16
 local guiVisible = true
 
 local gui = Instance.new("ScreenGui")
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.Parent = (gethui and gethui()) or CoreGui
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 130)
@@ -16,7 +18,6 @@ frame.Position = UDim2.new(0.5, -100, 0.5, -65)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 0
 frame.Active = true
-frame.Draggable = true
 frame.Parent = gui
 
 local header = Instance.new("Frame")
@@ -48,6 +49,31 @@ button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.Parent = frame
 
+local dragging = false
+local dragStart
+local startPos
+
+header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
 local function setSpeed(newSpeed)
     speed = newSpeed
     if player.Character and player.Character:FindFirstChild("Humanoid") then
@@ -69,13 +95,13 @@ button.MouseButton1Click:Connect(function()
     textBox.Text = tostring(defaultSpeed)
 end)
 
-runService.Stepped:Connect(function()
+RunService.Stepped:Connect(function()
     if player.Character and player.Character:FindFirstChild("Humanoid") then
         player.Character.Humanoid.WalkSpeed = speed
     end
 end)
 
-userInputService.InputBegan:Connect(function(input, gameProcessed)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == Enum.KeyCode.V and not gameProcessed then
         guiVisible = not guiVisible
         gui.Enabled = guiVisible
